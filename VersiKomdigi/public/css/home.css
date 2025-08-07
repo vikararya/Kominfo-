@@ -1,0 +1,9 @@
+.form-control {
+    height: calc(1.5em + 0.75rem + 2px); /* Tinggi default */
+  }
+  
+
+.input-group {
+    width: 100%; /* atau tentukan width yang diinginkan */
+  }
+  

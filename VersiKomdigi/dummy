@@ -1,0 +1,478 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Cover;
+use App\Models\Kategori;
+use App\Models\Versi;
+
+class CoverController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    // Menampilkan semua data (Index)
+    public function index()
+    {
+        $covers = Cover::with('versis')->get();
+        return view('covers.index', compact('covers'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        // Mengambil semua kategori untuk dropdown
+        $kategoris = Kategori::all();
+        return view('covers.create', compact('kategoris'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'image' => 'required|image',
+            'logo' => 'required|image',
+            'kategori_id' => 'required|exists:kategoris,id', // Validasi kategori yang dipilih
+            'content' => 'required|string',
+        ]);
+
+        // Upload file
+        $imagePath = $request->file('image')->store('covers/images', 'public');
+        $logoPath = $request->file('logo')->store('covers/logos', 'public');
+
+        // Simpan data
+        $cover = Cover::create(array_merge($validated, [
+            'image' => $imagePath,
+            'logo' => $logoPath,
+        ]));
+
+        return redirect()->route('covers.index')->with('success', 'Cover created successfully.');
+    }
+
+
+    /**
+     * Display the specified resource.
+     */
+    // Menampilkan detail data (Show)
+    public function show(Cover $cover)
+    {
+        $dokumentasis = $cover->dokumentasis;
+        return view('covers.show', compact('cover', 'dokumentasis'));
+    }
+
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Cover $cover)
+    {
+        $kategoris = Kategori::all(); // Ambil semua kategori
+        return view('covers.edit', compact('cover', 'kategoris'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    // Memperbarui data (Update)
+    public function update(Request $request, Cover $cover)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'image' => 'nullable|image',
+            'logo' => 'nullable|image',
+            'kategori_id' => 'required|exists:kategoris,id', // Validasi kategori yang dipilih
+            'content' => 'required|string',
+        ]);
+
+        // Jika ada file baru, upload file
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('covers/images', 'public');
+            $cover->image = $imagePath;
+        }
+
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->store('covers/logos', 'public');
+            $cover->logo = $logoPath;
+        }
+
+        // Update data
+        $cover->update(array_merge($validated, [
+            'name' => $validated['name'],
+            'image' => $cover->image,
+            'kategori_id' => $validated['kategori_id'],
+            'logo' => $cover->logo,
+            'content' => $validated['content'],
+        ]));
+
+        return redirect()->route('covers.index')->with('success', 'Cover updated successfully.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    // Menghapus data (Destroy)
+    public function destroy(Cover $cover)
+    {
+        $cover->delete();
+        return redirect()->route('covers.index')->with('success', 'Cover deleted successfully.');
+    }
+}
+
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Dokumentasi;
+use App\Models\Cover;
+use App\Models\Versi;
+
+class DokumentasiController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+
+        $covers = Cover::all();
+
+        $coverId = $request->get('cover_id'); // Ambil cover_id dari request
+
+        // Query dengan filter berdasarkan cover_id dan eager loading relasi versis
+        if ($coverId) {
+            // Dokumentasi yang sesuai dengan cover_id yang dipilih
+            $dokumentasis = Dokumentasi::where('cover_id', $coverId)
+                ->with(['cover', 'versis']) // Eager load relasi cover dan versis
+                ->latest()
+                ->get();
+        } else {
+            // Semua dokumentasi tanpa filter
+            $dokumentasis = Dokumentasi::with(['cover', 'versis']) // Eager load relasi cover dan versis
+                ->get();
+        }
+
+        return view('dokumentasis.index', compact('dokumentasis', 'covers', 'coverId'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create(Request $request)
+    {
+        $type = $request->query('type', 'judul'); // Default adalah judul
+
+        if ($type === 'judul') {
+            // Logika untuk menambah judul
+            $covers = Cover::all(); // Ambil semua cover
+            return view('dokumentasis.create', compact('covers', 'type')); // Tambahkan 'type' ke compact
+        }
+
+        if ($type === 'subjudul') {
+            // Logika untuk menambah subjudul
+            $covers = Cover::all();
+            $parents = Dokumentasi::whereNull('parent_id')->get(); // Ambil semua judul utama
+            return view('dokumentasis.create', compact('covers', 'parents', 'type')); // Tambahkan 'type' ke compact
+        }
+
+        abort(404); // Jika type tidak valid, kembalikan 404
+    }
+
+
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    // public function store(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'judul' => 'nullable|string|max:255', // Hanya diisi jika membuat judul utama
+    //         'subjudul' => 'nullable|string|max:255', // Hanya diisi jika membuat subjudul
+    //         'deskripsi' => 'required|string',
+    //         'cover_id' => 'required|exists:covers,id',
+    //         'parent_id' => 'nullable|exists:dokumentasis,id', // Validasi judul utama
+    //         'image' => 'required|image',
+    //     ]);
+
+    //     // Validasi tambahan: minimal salah satu harus diisi (judul atau subjudul)
+    //     if (empty($validated['judul']) && empty($validated['subjudul'])) {
+    //         return back()->withErrors(['error' => 'Judul atau Subjudul harus diisi.'])->withInput();
+    //     }
+
+    //     // Upload file
+    //     $imagePath = $request->file('image')->store('dokumentasis/', 'public');
+
+    //     $dokumentasi = Dokumentasi::create(array_merge($validated, [
+    //         'image' => $imagePath,
+    //         'judul' => $validated['judul'],             // Nilai judul (null jika subjudul saja)
+    //         'subjudul' => $validated['subjudul'],       // Nilai subjudul (null jika judul saja)
+    //         'deskripsi' => $validated['deskripsi'],     // Deskripsi input
+    //         'cover_id' => $validated['cover_id'],       // ID Cover
+    //         'parent_id' => $validated['parent_id'],     // Null jika judul utama
+
+    //     ]));
+
+    //     return redirect()->route('dokumentasis.index')->with('success', 'Dokumentasi created successfully.');
+    // }
+
+    public function store(Request $request)
+    {
+        $type = $request->input('type', 'judul'); // Default adalah 'judul'
+
+        if ($type === 'judul') {
+            // Validasi untuk Judul
+            $validated = $request->validate([
+                'judul' => 'required|string|max:255',
+                'deskripsi' => 'required|string',
+                'cover_id' => 'required|exists:covers,id',
+            ]);
+
+            // Simpan Judul
+            Dokumentasi::create([
+                'judul' => $validated['judul'],
+                'deskripsi' => $validated['deskripsi'],
+                'cover_id' => $validated['cover_id'],
+                'parent_id' => null, // Karena ini adalah judul utama
+            ]);
+
+            return redirect()->route('dokumentasis.index')->with('success', 'Judul berhasil ditambahkan.');
+        }
+
+        if ($type === 'subjudul') {
+            // Validasi untuk Subjudul
+            $validated = $request->validate([
+                'subjudul' => 'required|string|max:255',
+                'deskripsi' => 'required|string',
+                'parent_id' => 'required|exists:dokumentasis,id', // Parent harus valid
+            ]);
+
+            // Ambil nama judul dari parent_id
+            $parent = Dokumentasi::findOrFail($validated['parent_id']);
+
+            // Simpan Subjudul
+            Dokumentasi::create([
+                'judul' => $parent->judul, // Simpan nama judul utama untuk referensi
+                'subjudul' => $validated['subjudul'],
+                'deskripsi' => $validated['deskripsi'],
+                'parent_id' => $validated['parent_id'], // Mengacu pada judul utama
+                'cover_id' => $parent->cover_id, // Ambil cover ID dari parent
+            ]);
+
+            return redirect()->route('dokumentasis.show', $validated['parent_id'])->with('success', 'Subjudul berhasil ditambahkan.');
+        }
+
+        // Jika type tidak valid, kembalikan respons error
+        return redirect()->route('dokumentasis.index')->with('error', 'Tipe data tidak valid.');
+    }
+
+
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Dokumentasi $dokumentasi)
+    {
+        // Jika dokumentasi adalah subjudul, ambil parent-nya
+        $parent = $dokumentasi->parent;
+
+        // Jika dokumentasi adalah judul utama, ambil semua children-nya (subjudul)
+        $children = $dokumentasi->children;
+
+        return view('dokumentasis.show', compact('dokumentasi', 'parent', 'children'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Dokumentasi $dokumentasi)
+    {
+        $covers = Cover::all();
+        return view('dokumentasis.edit', compact('dokumentasi', 'covers'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Dokumentasi $dokumentasi)
+    {
+        $validated = $request->validate([
+            'judul' => 'required|string|max:255',
+            'subjudul' => 'required|string|max:255',
+            'image' => 'nullable|image',
+            'cover_id' => 'required|exists:covers,id',
+            'deskripsi' => 'required|string',
+        ]);
+
+        // Jika ada file baru, upload file
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('dokumentasis/', 'public');
+            $dokumentasi->image = $imagePath;
+        }
+
+        $dokumentasi->update(array_merge($validated, [
+            'judul' => $validated['judul'],
+            'subjudul' => $validated['subjudul'],
+            'image' => $dokumentasi->image,
+            'cover_id' => $validated['cover_id'],
+            'deskripsi' => $validated['deskripsi'],
+        ]));
+
+        return redirect()->route('dokumentasis.index')->with('success', 'Dokumentasi updated successfully.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Dokumentasi $dokumentasi)
+    {
+        $dokumentasi->delete();
+        return redirect()->route('dokumentasis.index')->with('success', 'Dokumentasi deleted successfully.');
+    }
+}
+
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Versi;
+use App\Models\Cover;
+use App\Models\Dokumentasi;
+
+class VersiController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+
+        $covers = Cover::all();
+        $dokumentasis = Dokumentasi::all();
+
+
+        $query = Versi::query();
+
+
+        if ($request->has('cover_id')) {
+            $query->where('cover_id', $request->get('cover_id'));
+        }
+
+
+        if ($request->has('dokumentasi_id')) {
+            $query->where('dokumentasi_id', $request->get('dokumentasi_id'));
+        }
+
+
+        $versis = $query->with(['cover', 'dokumentasi'])->get();
+
+
+        return view('versis.index', compact('versis', 'dokumentasis', 'covers'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        $covers = Cover::all();
+        $dokumentasis = Dokumentasi::all();
+        return view('versis.create', compact('covers', 'dokumentasis'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'versi' => 'required|integer',
+            'cover_id' => 'required|exists:covers,id',
+            'dokumentasi_id' => 'required|exists:dokumentasis,id',
+        ]);
+
+        $versi = Versi::create([
+            'versi' => $validated['versi'], // Ambil data dari hasil validasi
+            'cover_id' => $validated['cover_id'],
+            'dokumentasi_id' => $validated['dokumentasi_id'],
+        ]);
+
+        // Update kolom versi_id di tabel covers
+        $cover = Cover::find($validated['cover_id']);
+        $cover->versi_id = $versi->id; // Hubungkan versi dengan cover
+        $cover->save();
+
+        // Update kolom versi_id di tabel dokumentasis
+        $dokumentasi = Dokumentasi::find($validated['dokumentasi_id']);
+        $dokumentasi->versi_id = $versi->id; // Hubungkan versi dengan dokumentasi
+        $dokumentasi->save();
+
+
+
+        return redirect()->route('versis.index')->with('success', 'Versi created successfully.');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Versi $versi)
+    {
+        return view('versis.show', compact('versi'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Versi $versi)
+    {
+        $covers = Cover::all();
+        $dokumentasis = Dokumentasi::all();
+        return view('versis.edit', compact('versi', 'dokumentasis', 'covers'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Versi $versi)
+    {
+        $validated = $request->validate([
+            'versi' => 'required|integer',
+            'cover_id' => 'required|exists:covers,id',
+            'dokumentasi_id' => 'required|exists:dokumentasis,id',
+        ]);
+
+        $versi->update([
+            'versi' => $validated['versi'],
+            'cover_id' => $validated['cover_id'],
+            'dokumentasi_id' => $validated['dokumentasi_id'],
+        ]);
+
+        // Update kolom versi_id di tabel covers
+        $cover = Cover::find($validated['cover_id']);
+        $cover->versi_id = $versi->id; // Hubungkan versi dengan cover
+        $cover->save();
+
+        // Update kolom versi_id di tabel dokumentasis
+        $dokumentasi = Dokumentasi::find($validated['dokumentasi_id']);
+        $dokumentasi->versi_id = $versi->id; // Hubungkan versi dengan dokumentasi
+        $dokumentasi->save();
+
+
+        return redirect()->route('versis.index')->with('success', 'Versi updated successfully.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Versi $versi)
+    {
+        $versi->delete();
+        return redirect()->route('versis.index')->with('success', 'Versi deleted successfully.');
+    }
+}

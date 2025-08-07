@@ -1,0 +1,104 @@
+.sidebar {
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.sidebar .nav-link {
+    color: #fff;
+    transition: color 0.3s ease;
+}
+
+.sidebar .nav-link:hover {
+    color: #f8f9fa;
+}
+
+.navbar-search .form-control {
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    transition: all 0.3s ease;
+}
+
+.navbar-search .form-control:focus {
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    border-color: #007bff;
+}
+
+.dropdown-menu {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.btn-action {
+    margin: 0 5px;
+    transition: all 0.3s ease;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal.fade .modal-dialog {
+    transform: translateY(-50px);
+    transition: all 0.3s ease;
+}
+
+.modal.show .modal-dialog {
+    transform: translateY(0);
+}
+
+.sticky-footer {
+    background: linear-gradient(135deg, #007bff, #00ff88);
+    color: #fff;
+    padding: 20px 0;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+
+    .navbar-nav {
+        flex-direction: column;
+    }
+
+    .navbar-search {
+        width: 100%;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+

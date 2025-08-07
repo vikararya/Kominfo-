@@ -1,0 +1,48 @@
+.btn-link {
+    text-decoration: none;
+    color: inherit;
+    padding: 0.5rem 1rem;
+    width: 100%;
+    text-align: left;
+}
+
+.btn-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.fas.fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+[aria-expanded="true"] .fas.fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+.list-group-item {
+    padding: 0; /* Menghapus padding default agar tombol dan subjudul rapi */
+}
+
+.list-group-item .list-group {
+    margin-top: 0.5rem;
+}
+
+/* Style untuk dropdown versi */
+#versi_id {
+    background-color: #0056b3; /* Warna background biru */
+    color: white; /* Warna teks putih */
+    border: none; /* Menghilangkan border default */
+    border-radius: 5px; /* Sudut melengkung */
+    padding: 0.5rem 1rem; /* Padding agar lebih nyaman */
+    cursor: pointer; /* Mengubah kursor saat hover */
+    transition: background-color 0.3s ease; /* Animasi saat hover */
+}
+
+#versi_id:hover {
+    background-color: #0056b3; /* Warna background lebih gelap saat hover */
+}
+
+#versi_id:focus {
+    background-color: #0056b3; /* Warna background lebih gelap saat focus */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Efek shadow saat focus */
+}
